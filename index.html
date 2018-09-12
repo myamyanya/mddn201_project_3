@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+	<head>
+        
+		<title>Dreamy City</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <meta content="Designed by VivianCHEN">
+        
+        <link href="https://fonts.googleapis.com/css?family=Pacifico" rel="stylesheet">
+        
+		<style>
+			body {
+				background:#F7EFE9;
+                color: #5E3023;
+                text-align:center;
+				padding:0;
+				margin:0;
+				overflow:hidden;
+			}
+
+			#info {
+				position: absolute;
+				width: 100%;
+                padding-top: 30px;
+				font-size:40px;
+                font-family: sans-serif;
+				text-align:center;
+			}
+            t1{
+                font-family: 'Pacifico', cursive;
+            }
+            p{
+                padding-top: 0px;
+                font-size:15px;
+            }
+  
+            .dropbtn {
+                background-color: #E2C7B0;
+                color: #5E3023;
+                min-width: 190px;
+                padding: 16px; 
+                font-size: 16px;
+                border: none;
+                cursor: pointer;
+            }           
+            #plant {
+                position: absolute;
+                top: 130px;
+                left: 0px;
+                display: inline-block;
+            }
+            #build {
+                position: absolute;
+                top: 304px;
+                left: 0px;
+                display: inline-block;
+            }
+            #road {
+                position: absolute;
+                top: 575px;
+                left: 0px;
+                display: inline-block;
+            }            
+            /* Dropdown Content (Hidden by Default) */
+            .menu {
+                display: none;
+                position: absolute;
+                background-color: #F7EFE9;
+                min-width: 190px;
+                z-index: 1;
+            }
+            .content {
+                padding: 10px 0; 
+                font-weight: 250;
+            } 
+            .content:hover{
+                background-color: rgba(226, 199, 176, 0.5); 
+            }
+            #plant:hover .menu {
+                display: block;
+            }
+            #build:hover .menu {
+                display: block;
+            }
+            #road:hover .menu {
+                display: block;
+            }
+		</style>
+        
+	</head>
+    
+	<body>
+        
+		<div id="info">
+            <t1>Create your own CITY !</t1>
+			<p><strong>Click</strong>: add voxel &emsp; <strong>Shift + click</strong>: remove voxel</p>
+		</div>
+        
+        <div id="plant">
+            <button class="dropbtn">PLANTS</button>
+            <div class="menu">
+                <div class="content" id="tree">Trees</div>
+                <div class="content" id="grass">Grass</div>
+                <div class="content" id="flower">Flowers</div>
+            </div>
+        </div>
+                
+        <div id="build">
+            <button class="dropbtn">BUILDINGS</button>
+            <div class="menu">
+                <div class="content" id="green"><img src="img/list_green.jpg"></div>
+                <div class="content" id="blue"><img src="img/list_blue.jpg"></div>
+                <div class="content" id="yellow"><img src="img/list_yellow.jpg"></div>
+                <div class="content" id="orange"><img src="img/list_orange.jpg"></div>
+                <div class="content" id="red"><img src="img/list_red.jpg"></div>
+            </div>
+        </div>
+        
+        <div id="road">
+            <button class="dropbtn">ROADS</button>
+            <div class="menu">
+                <div class="content" id="hor">Horizontal</div>
+                <div class="content" id="ver">Vertical</div>
+            </div>
+        </div>
+
+		<script src="js/three.js"></script>
+        <script src="js/Detector.js"></script>
+        <script src="js/OrbitControls.js"></script>
+        <script src="js/OBJLoader.js"></script>
+        <script src="js/MTLLoader.js"></script>
+        <script src="js/DDSLoader.js"></script>
+        <script src="js/FBXLoader.js"></script>
+        <script src="js/inflate.min.js"></script>
+
+		<script>
+
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+			var camera, scene, renderer;
+			var plane, cube;
+			var mouse, raycaster, isShiftDown = false;
+            var judge = 0;
+
+			var rollOverMesh, rollOverMaterial;
+            var treeGeo, treeMaterial;
+            var treeBase, treeBaseMaterial;
+            var grassGeo, grassMaterial, flowerGeo, flowerMaterial;
+			var cubeGeo, cubeColor, cubeStatus = 0;
+            var cubeMaterialGreen, cubeMaterialBlue, cubeMaterialYellow, cubeMaterialOrange, cubeMaterialRed;
+            var roadGeo, roadMaterial, pos = false;
+
+			var objects = [];
+
+			init();
+			render();
+
+			function init() {
+
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.set( 500, 800, 1300 );
+				camera.lookAt( 0, 0, 0 );
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0xFAF5F1 );
+
+				// roll-over helpers
+				var rollOverGeo = new THREE.BoxBufferGeometry( 50, 50, 50 );
+				rollOverMaterial = new THREE.MeshBasicMaterial( { color: 0xE2C7B0, opacity: 0.5, transparent: true } );
+				rollOverMesh = new THREE.Mesh( rollOverGeo, rollOverMaterial );
+				scene.add( rollOverMesh );
+
+				// cubes
+				cubeGeo = new THREE.BoxBufferGeometry( 50, 50, 50 );
+				cubeMaterialGreen = [ 
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_green_r.jpg' ) } ), //right
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_green_l.jpg' ) } ), //left
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_green_t_b.jpg' ) } ), //top
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_green_t_b.jpg' ) } ), //bottom
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_green_f.jpg' ) } ), //front
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_green_b.jpg' ) } ), //back
+                ];
+                cubeMaterialBlue = [ 
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_blue_r.jpg' ) } ), //right
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_blue_l.jpg' ) } ), //left
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_blue_t_b.jpg' ) } ), //top
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_blue_t_b.jpg' ) } ), //bottom
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_blue_f.jpg' ) } ), //front
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_blue_b.jpg' ) } ), //back
+                ];
+                cubeMaterialYellow = [ 
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_yellow_r.jpg' ) } ), //right
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_yellow_l.jpg' ) } ), //left
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_yellow_t_b.jpg' ) } ), //top
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_yellow_t_b.jpg' ) } ), //bottom
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_yellow_f.jpg' ) } ), //front
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_yellow_b.jpg' ) } ), //back
+                ];
+                cubeMaterialOrange = [ 
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_orange_r.jpg' ) } ), //right
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_orange_l.jpg' ) } ), //left
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_orange_t_b.jpg' ) } ), //top
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_orange_t_b.jpg' ) } ), //bottom
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_orange_f.jpg' ) } ), //front
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_orange_b.jpg' ) } ), //back
+                ];
+                cubeMaterialRed = [ 
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_red_r.jpg' ) } ), //right
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_red_l.jpg' ) } ), //left
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_red_t_b.jpg' ) } ), //top
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_red_t_b.jpg' ) } ), //bottom
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_red_f.jpg' ) } ), //front
+                    new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/b_red_b.jpg' ) } ), //back
+                ];
+                                
+                // tree
+                var HeightRam = Math.random;
+                treeGeo = new THREE.CylinderBufferGeometry( 1, 20, 50, 4 );
+                treeBase = new THREE.PlaneBufferGeometry(50, 50);
+                treeMaterial = new THREE.MeshBasicMaterial( {color: 0x008000} );
+                treeBaseMaterial = new THREE.MeshBasicMaterial( {color: 0x65C54F} );
+
+                treeGeo.rotateY (Math.PI/4);
+                treeBase.rotateX ( -Math.PI/2);
+                
+                // grass                
+                grassGeo = new THREE.PlaneBufferGeometry(50, 50);
+                grassMaterial = new THREE.MeshLambertMaterial( {color: 0x65C54F} );
+
+                grassGeo.rotateX( -Math.PI/2);
+                
+                // flower
+                flowerGeo = new THREE.PlaneBufferGeometry(50, 50);
+                flowerMaterial = new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/flower.jpg' ) } );
+                
+                flowerGeo.rotateX( -Math.PI/2);
+                
+                // road
+                roadGeo = new THREE.PlaneBufferGeometry(50, 50);
+                roadMaterial = new THREE.MeshLambertMaterial( { map: new THREE.TextureLoader().load( 'img/road_hor.jpg' ) } );
+                
+                roadGeo.rotateX( -Math.PI/2);
+
+				// grid
+				var gridHelper = new THREE.GridHelper( 1000, 20 );
+				scene.add( gridHelper );
+
+				// ground
+				raycaster = new THREE.Raycaster();
+				mouse = new THREE.Vector2();
+
+				var geometry = new THREE.PlaneBufferGeometry( 1000, 1000 );
+				geometry.rotateX( - Math.PI / 2 );
+
+				plane = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { visible: false } ) );
+				scene.add( plane );
+
+				objects.push( plane );
+
+				// lights
+				var ambientLight = new THREE.AmbientLight( 0xFFFFFF, 0.5 );
+				scene.add( ambientLight );
+
+				var directionalLight = new THREE.DirectionalLight( 0xffffff );
+				directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
+				scene.add( directionalLight );
+                
+                // renderer
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+                
+				document.body.appendChild( renderer.domElement );
+
+                //
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+				document.addEventListener( 'keydown', onDocumentKeyDown, false );
+				document.addEventListener( 'keyup', onDocumentKeyUp, false );
+
+                tree.addEventListener( 'mousedown', function() { judge = 1; }, false );
+                
+                grass.addEventListener( 'mousedown', function() { judge = 2 }, false );
+                flower.addEventListener( 'mousedown', function() { judge = 3 }, false );
+                
+                green.addEventListener( 'mousedown', function() { judge = 0; cubeStatus = 0; }, false );
+                blue.addEventListener( 'mousedown', function() { judge = 0; cubeStatus = 1; }, false );
+                yellow.addEventListener( 'mousedown', function() { judge = 0; cubeStatus = 2; }, false );
+                orange.addEventListener( 'mousedown', function() { judge = 0; cubeStatus = 3; }, false );
+                red.addEventListener( 'mousedown', function() { judge = 0; cubeStatus = 4; }, false );
+                
+                hor.addEventListener( 'mousedown', function() { judge = -1; pos = false; }, false );
+                ver.addEventListener( 'mousedown', function() { judge = -1; pos = true; }, false );
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize, false );
+                
+                // controller
+                controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function onDocumentMouseMove( event ) {
+
+				event.preventDefault();
+
+				mouse.set( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1 );
+
+				raycaster.setFromCamera( mouse, camera );
+
+				var intersects = raycaster.intersectObjects( objects );
+
+				if ( intersects.length > 0 ) {
+
+					var intersect = intersects[ 0 ];
+
+					rollOverMesh.position.copy( intersect.point ).add( intersect.face.normal );
+					rollOverMesh.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
+
+				}
+
+				render();
+
+			}
+
+			function onDocumentMouseDown( event ) {
+
+				event.preventDefault();
+
+				mouse.set( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1 );
+
+				raycaster.setFromCamera( mouse, camera );
+
+				var intersects = raycaster.intersectObjects( objects );
+
+				if ( intersects.length > 0 ) {
+
+					var intersect = intersects[ 0 ];
+
+					// delete cube
+					if ( isShiftDown ) {
+
+						if ( intersect.object !== plane ) {
+
+							scene.remove( intersect.object );
+
+							objects.splice( objects.indexOf( intersect.object ), 1 );
+
+						}
+
+					// create cube
+					} else {
+
+						if( judge == 0 ){
+                            
+                            // create building
+                            if( cubeStatus == 0 ){
+                                
+                               cubeColor = cubeMaterialGreen;
+                                
+                            }else if( cubeStatus == 1 ){
+                                
+                                cubeColor = cubeMaterialBlue;
+                                
+                            }else if( cubeStatus == 2 ){
+                                
+                                cubeColor = cubeMaterialYellow;
+                                
+                            }else if( cubeStatus == 3 ){
+                                
+                                cubeColor = cubeMaterialOrange;
+                                
+                            }else if( cubeStatus == 4 ){
+                                
+                                cubeColor = cubeMaterialRed;
+                                
+                            }
+                            
+                            var voxel = new THREE.Mesh( cubeGeo, cubeColor );
+                            
+                            voxel.position.copy( intersect.point ).add( intersect.face.normal );
+                            voxel.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
+                            
+                            scene.add( voxel );
+                            
+                        }else if( judge == 1 ){
+                            
+                            // create tree
+                            var voxel = new THREE.Mesh( treeGeo, treeMaterial );
+                            var base = new THREE.Mesh(treeBase, treeBaseMaterial);
+                            
+                            voxel.position.copy( intersect.point ).add( intersect.face.normal );
+                            voxel.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
+                            
+                            base.position.copy( intersect.point ).add( intersect.face.normal );
+                            base.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
+                            
+                            base.position.y = 0;
+                            
+                            scene.add( base );
+                            scene.add( voxel );
+                            
+                        }else if(judge == 2){
+                            
+                            // create grass
+                            var voxel = new THREE.Mesh( grassGeo, grassMaterial );
+                            
+                            voxel.position.copy( intersect.point ).add( intersect.face.normal );
+                            voxel.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
+                            
+                            voxel.position.y = 0;
+                            
+                            scene.add( voxel );
+                            
+                        }else if(judge == 3){
+                            
+                            // create grass
+                            var voxel = new THREE.Mesh( flowerGeo, flowerMaterial );
+                            
+                            voxel.position.copy( intersect.point ).add( intersect.face.normal );
+                            voxel.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
+                            
+                            voxel.position.y = 0;
+                            
+                            scene.add( voxel );
+                            
+                        }else if(judge == -1){
+                            
+                            //create road
+                            var voxel = new THREE.Mesh( roadGeo, roadMaterial );
+                            
+                            voxel.position.copy( intersect.point ).add( intersect.face.normal );
+                            voxel.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
+                            
+                            if(pos == true){
+                                voxel.rotateY( Math.PI/2 );
+                            }else if(pos == false){
+                                
+                            }
+                            
+                            voxel.position.y = 0;
+                            
+                            scene.add( voxel );
+                            
+                        }
+
+						objects.push( voxel );
+
+					}
+
+					render();
+
+				}
+
+			}
+
+			function onDocumentKeyDown( event ) {
+
+				switch( event.keyCode ) {
+
+					case 16: isShiftDown = true; break;
+
+				}
+
+			}
+
+			function onDocumentKeyUp( event ) {
+
+				switch ( event.keyCode ) {
+
+					case 16: isShiftDown = false; break;
+
+				}
+
+			}
+
+			function render() {
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+</html>
